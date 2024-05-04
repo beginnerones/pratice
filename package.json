@@ -1,0 +1,21 @@
+{
+  "name": "not_express_use",
+  "version": "1.0.0",
+  "description": "http를활용합니다",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon app",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "hhs",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "mysql2": "^3.9.7",
+    "nodemon": "^3.1.0",
+    "sequelize": "^6.37.3",
+    "sequelize-cli": "^6.6.2",
+    "xml2js": "^0.6.2",
+    "xml2json": "^0.12.0"
+  }
+}
