@@ -2,10 +2,11 @@ const http=require('http');
 const dotenv=require('dotenv');
 const url=require('url');
 const xml2js=require('xml2js');
+const {sequelize}=require('./models');
 const Apart=require('./models/apart');
 const Zio=require('./models/zio');
 const parser=new xml2js.Parser({trim:true,explicitArray:false});
-const {sequelize}=require('./models');
+
 
 
 dotenv.config();
@@ -20,7 +21,6 @@ sequelize.sync({force:false})
         console.error(err);
     })
 
-let allurl='';
 let parseurl='';
 const option={
     hostname:'',
@@ -31,8 +31,8 @@ const option={
 
 http.createServer(async(req,res)=>{
     try{
+        parseurl=url.parse(req.url,true);
         if(req.method=='GET'){
-            parseurl=url.parse(req.url,true);
             option.method= 'GET';
             if(req.url=='/'){
                 res.writeHead(200, {'Content-Type': 'application/json'});
@@ -43,22 +43,27 @@ http.createServer(async(req,res)=>{
                 console.log(location);
                 option.hostname='apis.data.go.kr';
                 option.path=`/1741000/StanReginCd/getStanReginCdList?serviceKey=${process.env.KEY}&locatadd_nm=${encodeURIComponent(location)}&type=json&PageNo=1&numOfRows=10`;
-
                 const api=http.request(option,(apiRes)=>{
+                    ;
                     let data='';
                     apiRes.on('data',(chuck)=>{
                         data+=chuck;
                     });
                     apiRes.on('end',()=>{
-                        const result=JSON.parse(data);
-                        res.writeHead(200, {'Content-Type': 'application/json'});
-                        res.end(JSON.stringify(result));
+                        try{
+                            const result=JSON.parse(data);
+                            res.writeHead(200, {'Content-Type': 'application/json'});
+                            res.end(JSON.stringify(result));
+                        }catch(error){
+                            res.writeHead(500, {'Content-Type': 'application/json'});
+                            res.end(JSON.stringify({message: "데이터 파싱 중 에러가 발생했습니다."}));
+                        }
                     });
                 });
                 api.on('error',(err)=>{
                     console.error(err);
-                    res.writeHead(500,{'content-Type':'application/json'})
-                    res.end(JSON.stringify({message: "An error occurred while making the external API request."}));
+                    res.writeHead(500,{'Content-Type':'application/json'})
+                    res.end(JSON.stringify({message: "api호출을 하지 못하였습니다."}));
                 })
                 api.end();
 
@@ -74,15 +79,20 @@ http.createServer(async(req,res)=>{
                         data+=chuck;
                     });
                     apiRes.on('end',()=>{
-                        const result=JSON.parse(data);
-                        res.writeHead(200, {'Content-Type': 'application/json'});
-                        res.end(JSON.stringify(result));
+                        try{
+                            const result=JSON.parse(data);
+                            res.writeHead(200, {'Content-Type': 'application/json'});
+                            res.end(JSON.stringify(result));
+                        }catch(error){
+                            res.writeHead(500, {'Content-Type': 'application/json'});
+                            res.end(JSON.stringify({message: "데이터 파싱 중 에러가 발생했습니다."}));
+                        }
                     });
                 });
                 api2.on('error',(err)=>{
                     console.error(err);
-                    res.writeHead(500,{'content-Type':'application/json'})
-                    res.end(JSON.stringify({message: "An error occurred while making the external API request."}));
+                    res.writeHead(500,{'Content-Type':'application/json'})
+                    res.end(JSON.stringify({message: "api호출을 하지 못하였습니다."}));
                 })
                 api2.end();
               
@@ -106,9 +116,9 @@ http.createServer(async(req,res)=>{
                         
                         parser.parseString(data,(err,result)=>{
                             if(err){
-                                console.log(result);
-                                res.writeHead(500,{'content-Type':'application/json'})
-                                res.end(err.message);
+                                console.log(err);
+                                res.writeHead(500,{'Content-Type':'application/json'})
+                                res.end(JSON.stringify({message: "데이터 처리 중 오류가 발생했습니다."}));
                             }else{
                                 res.writeHead(200, {'Content-Type': 'application/json'});
                                 res.end(JSON.stringify(result));
@@ -121,8 +131,8 @@ http.createServer(async(req,res)=>{
                 });
                 api3.on('error',(err)=>{
                     console.error(err);
-                    res.writeHead(500,{'content-Type':'application/json'})
-                    res.end(JSON.stringify({message: "An error occurred while making the external API request."}));
+                    res.writeHead(500,{'Content-Type':'application/json'})
+                    res.end(JSON.stringify({message: "외부 API 요청 오류."}));
                 })
                 api3.end();
             }else if(parseurl.pathname=='/api/event'){
@@ -150,12 +160,22 @@ http.createServer(async(req,res)=>{
                             data+=chuck;
                         });
                         apiRes.on('end',()=>{
-                            const result=JSON.parse(data);
-                            res.writeHead(200, {'Content-Type': 'application/json'});
-                            res.end(JSON.stringify(result));
+                            try{
+                                const result=JSON.parse(data);
+                                res.writeHead(200, {'Content-Type': 'application/json'});
+                                res.end(JSON.stringify(result));
+                            }catch(error){
+                                res.writeHead(500, {'Content-Type': 'application/json'});
+                                res.end(JSON.stringify({message: "서버에서 데이터를 처리하는 중 문제가 발생했습니다."}));             
+                            }
                         });
 
                     });
+                    api4.on('error',(err)=>{
+                        console.error(err);
+                        res.writeHead(500, {'Content-Type': 'application/json'});
+                        res.end(JSON.stringify({message: "외부 API 요청 에러."}));
+                    })
                     api4.end();
                 }else{
                     res.writeHead(404, {'Content-Type': 'application/json'});
@@ -172,28 +192,48 @@ http.createServer(async(req,res)=>{
                     res.end(JSON.stringify({ error: 'Internal Server Error' }));
                 }
             }
+
+            else if(parseurl.pathname=='/api/zio/list'){
+                try{
+                    const ZioList=await Zio.findAll({});
+                    res.writeHead(200,{'Content-Type': 'application/json'});
+                    res.end(JSON.stringify(ZioList));
+                }catch(error){
+                    console.log(error);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Internal Server Error' }));
+                }
+            }
         }
         else if(req.method==='POST'){
-            option.method= 'POST';
             if(parseurl.pathname=='/api/apart/select'){
                 let body='';
                 req.on('data',(data)=>{
                     body+=data;
                 });
                 req.on('end',async()=>{
-                    console.log(body);
-                    const result=JSON.parse(body);
-                    
-                    const newApart= await Apart.create({
-                        apart_name:result.ApartName,
-                        buildyear:result.Build,
-                        amount:result.Amount,
-                        location:result.location,
-                        area:result.Area,
-                    });
+                    try{
+                        console.log(body);
+                        const result=JSON.parse(body);
+                        if (!result.ApartName || !result.Build || !result.Amount || !result.location || !result.Area) {
+                            res.writeHead(400, {'Content-Type': 'application/json'});
+                            res.end(JSON.stringify({message: "필드 정보 부족"}));
+                            return;
+                        }
+                        const newApart= await Apart.create({
+                            apart_name:result.ApartName,
+                            buildyear:result.Build,
+                            amount:result.Amount,
+                            location:result.location,
+                            area:result.Area,
+                        });
 
-                    res.writeHead(200,{'Content-Type':'application/json'});
-                    res.end(JSON.stringify({message:"저장완료."}));
+                        res.writeHead(200,{'Content-Type':'application/json'});
+                        res.end(JSON.stringify({message:"저장완료.",newApart}));
+                    }catch(err){
+                        res.writeHead(500, {'Content-Type': 'application/json'});
+                        res.end(JSON.stringify({message: "저장이 되지 않았습니다."}));
+                    }
                 });
             }else if(parseurl.pathname=='/api/zio/select'){
                 let body='';
@@ -201,38 +241,92 @@ http.createServer(async(req,res)=>{
                     body+=data;
                 });
                 req.on('end',async()=>{
-                    const type=encodeURIComponent(body.type||'PARCEL');
-                    const address=encodeURIComponent(body.address||'서울특별시');
-                    option.hostname='api.vworld.kr';
-                    option.path=`/req/address?key=${process.env.ZIO}&service=address&request=GetCoord&format=json&crs=epsg:4326&type=${type}&address=${address}`;
-                    option.method="GET"
+                    try{
+                        let type='';
+                        body=JSON.parse(body);
+                        if(body.type=='지번명'){
+                            type=encodeURIComponent('PARCEL');
+                        }else if(body.type=='도로명'){
+                            type=encodeURIComponent('ROAD');
+                        }
+                        const address=encodeURIComponent(body.address);
+                        option.hostname='api.vworld.kr';
+                        option.path=`/req/address?key=${process.env.ZIO}&service=address&request=GetCoord&format=json&crs=epsg:4326&type=${type}&address=${address}`;
+                        option.method="GET"
 
-                    const api2=http.request(option,(apiRes)=>{
-                        let data='';
-                        apiRes.on('data',(chuck)=>{
-                            data+=chuck;
-                        });
-                        apiRes.on('end',async()=>{
-                           result=JSON.parse(data);
-                            
-                            console.log(result);
-                            const newZio= await Zio.create({
-                                x:result.response.result.point.x,
-                                y:result.response.result.point.y,
-                                location:result.response.refined.text,
+                        const api2=http.request(option,(apiRes)=>{
+                            let data='';
+                            apiRes.on('data',(chuck)=>{
+                                data+=chuck;
                             });
-                            res.writeHead(200, {'Content-Type': 'application/json'});
-                            res.end(JSON.stringify({message:"저장 완료"},newZio));
+                            apiRes.on('end',async()=>{
+                                result=JSON.parse(data);
+                                console.log(result);
+                                if(result.response.status=='ERROR'){
+                                    res.writeHead(404,{'Content-Type':'application/json'})
+                                    res.end(JSON.stringify({message:"매개변수 체크"}));
+                                    return;
+                                }
+                                const newZio= await Zio.create({
+                                    x:result.response.result.point.x,
+                                    y:result.response.result.point.y,
+                                    location:result.response.refined.text,
+                                });
+                               
+                                res.writeHead(200, {'Content-Type': 'application/json'});
+                                res.end(JSON.stringify({message:"저장 완료"},newZio));
+                            });
                         });
-                    });
-                    api2.on('error',(err)=>{
-                        console.error(err);
-                        res.writeHead(500,{'content-Type':'application/json'})
-                        res.end(JSON.stringify({message: "An error occurred while making the external API request."}));
-                    });
-                    api2.end();
+                        api2.on('error',(err)=>{
+                            console.error(err);
+                            res.writeHead(500,{'Content-Type':'application/json'})
+                            res.end(JSON.stringify({message: "외부 api호출 요청 실패."}));
+                        });
+                        api2.end();
+                    }catch(e){
+                        res.writeHead(400, {'Content-Type': 'application/json'});
+                        res.end(JSON.stringify({message: "요청 본문을 파싱하는 중 오류가 발생했습니다."}));
+                    }
                         
                 });   
+            }
+        } else if(req.method==='DELETE'){
+            const path=parseurl.pathname;
+            const trimme=path.replace(/^\/+|\/+$/g, '');
+            if(trimme.match(/^api\/zio\/delete\/\d+$/)){
+                const id=trimme.split('/')[3];
+                try{
+                    const deletelist=await Zio.destroy({
+                        where:{id:id},
+                    });
+                    if(!deletelist){
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({message:"삭제할 데이터가 존재하지 않습니다."}));
+                    } 
+                    res.writeHead(202, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({message:"삭제 성공", deletelist}));
+                }catch(e){
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(JSON.stringify({ message: "서버 오류" })));
+                }
+            }
+            else if(trimme.match(/^api\/apart\/delete\/\d+$/)){
+                const id=trimme.split('/')[3];
+                try{
+                    const deleteApart=await Apart.destroy({
+                        where:{id:id},
+                    });
+                    if(!deleteApart) {
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({message:"삭제할 데이터가 존재하지 않습니다."}));
+                    } else {
+                        res.writeHead(202, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({message:"삭제 성공", deleteApart}));
+                    }
+                }catch(e){
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(JSON.stringify({ message: "서버 오류" })));
+                }
             }
         }
         else{
@@ -240,9 +334,10 @@ http.createServer(async(req,res)=>{
             res.end(JSON.stringify({message:"라우터가 없습니다."}));
         }
     } catch(err){
-        res.writeHead(500,{'content-Type':'application/json'})
+        res.writeHead(500,{'Content-Type':'application/json'})
         res.end(err.message);
     }
+
 }).listen(port,()=>{
     console.log(`${port}번 포트에서 대기중.`);
 });
