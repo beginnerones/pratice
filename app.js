@@ -39,7 +39,7 @@ http.createServer(async(req,res)=>{  //서버를 생성합니다.
                 res.end(JSON.stringify({message: "아파트 매매값 조회및 주변행사 조회 api에 오신 것을 환영합니다."}));
             }else if(parseurl.pathname=='/api/search'){ //법정동 코드를 조회하는 부분입니다.
                 
-                const location=parseurl.query.location; //쿼리스트링을 작성된 부분중 주소에 대한 부분입니다.
+                const location=parseurl.query.location; //쿼리스트링을 작성된 부분중 주소에 대한 부분입니다.(ex.서울특별시,광주,송도 등)
                 console.log(location);
                 option.hostname='apis.data.go.kr';  //api에 기본 주소를 작성하여 줍니다.
                 option.path=`/1741000/StanReginCd/getStanReginCdList?serviceKey=${process.env.KEY}&locatadd_nm=${encodeURIComponent(location)}&type=json&PageNo=1&numOfRows=10`;
@@ -77,7 +77,7 @@ http.createServer(async(req,res)=>{  //서버를 생성합니다.
                 }else{ //기본값
                 type=encodeURIComponent('PARCEL');
                 }
-                const address=encodeURIComponent(parseurl.query.address); //조회할 주소를 작성하여 줍니다.
+                const address=encodeURIComponent(parseurl.query.address); //조회할 주소를 작성하여 줍니다.(ex.김해,김포,포천 등)
                 option.hostname='api.vworld.kr'; //api url부분입니다.
                 option.path=`/req/address?key=${process.env.ZIO}&service=address&request=GetCoord&format=json&crs=epsg:4326&type=${type}&address=${address}`;
                 //경로와 매개변수로 서비스키,주소,도로,지번명등을 작성해줍니다.
@@ -106,9 +106,9 @@ http.createServer(async(req,res)=>{  //서버를 생성합니다.
               //아파트에 대한 정보로 법정동코드,계약년도월을 작성해 매매 정보를 조회하여 줍니다.
             }else if(parseurl.pathname=='/api/apart'){
                 
-                const lawn=encodeURIComponent(parseurl.query.lawn); //법정동코드를 입력하는 부분입니다.(11110)
-                const deal_ymd=encodeURIComponent(parseurl.query.deal_ymd); //그 해당 건물에 계약년도와 월을 입력합니다.
-                const simple=encodeURIComponent(parseurl.query.simple||'0'); //해당 정보를 간단하게 볼지 아닌지를 입력합니다.
+                const lawn=encodeURIComponent(parseurl.query.lawn); //법정동코드를 입력하는 부분입니다.(11110),위에 api로 조회를 하면 됩니다.
+                const deal_ymd=encodeURIComponent(parseurl.query.deal_ymd); //그 해당 건물에 계약년도와 월을 입력합니다. (202103,201103)
+                const simple=encodeURIComponent(parseurl.query.simple||'0'); //해당 정보를 간단하게 볼지 아닌지를 입력합니다.(1,0)
 
                 option.hostname='openapi.molit.go.kr'; //api 주소를 작성합니다.
                 option.port='8081' //api 주소에 작성되어있던 포트번호로 변경해줍니다.
@@ -143,7 +143,7 @@ http.createServer(async(req,res)=>{  //서버를 생성합니다.
                 })
                 api3.end(); //http요청을 완료하였다는 메서드입니다.
             }else if(parseurl.pathname=='/api/event'){  //이부분은 zio데이터베이스에 저장된 내용으로 그 장소,주소 주변에 있는 행사를 조회해 줍니다.
-                const os=encodeURIComponent(parseurl.query.os|| "ETC"); //핸드폰에 os를 작성해 줍니다
+                const os=encodeURIComponent(parseurl.query.os|| "ETC"); //핸드폰에 os를 작성해 줍니다(IOS,AND,WIN,ETC)
                 const selindex=parseInt(parseurl.query.selindex,10); //조회하고싶은 데이터베이스에 id번호를 입력합니다.
                 const radius=encodeURIComponent(parseurl.query.radius||"1000"); //그 장소,주소 반경 m로 조회할지를 입력합니다.
 
@@ -280,8 +280,8 @@ http.createServer(async(req,res)=>{  //서버를 생성합니다.
                                 return;
                             }
                             const newZio= await Zio.create({ //응답으로 받은 js객체를 데이터베이스에 저장하여 줍니다.
-                                x:result.response.result.point.x, //x값입니다.
-                                y:result.response.result.point.y, //y값입니다.
+                                x:result.response.result.point.x, //x값입니다.(위도)
+                                y:result.response.result.point.y, //y값입니다.(경도)
                                 location:result.response.refined.text, //x,y값에 의한 주소입니다.
                             });
                                
