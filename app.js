@@ -120,7 +120,7 @@ http.createServer(async(req,res)=>{  //서버를 생성합니다.
                         data+=chuck;  //api 호출에 대한 결과로 데이터조각들을 위에 data변수에 담아 하나로 만들어 줍니다.
                        
                     });
-                    apiRes.on('end',()=>{ 
+                    apiRes.on('end',()=>{ //이부분에 오류가 있어,POSTMAN으로 두번 요청시 조회는 되나 변환이 약간 덜되는 문제가 존재하는 부분입니다.
                         parser.parseString(data,(err,result)=>{ //이 데이터는 무조건 xml데이터로 오기 때문에 데이터를 넣고 json으로 변환하는 부분입니다.
                             if(err){ //만약 변환중 오류가 발생한다면 수행합니다.
                                 console.log(err);
